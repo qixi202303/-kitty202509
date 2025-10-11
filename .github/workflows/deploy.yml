@@ -7,6 +7,10 @@ on:
 
 permissions: write-all
 
+env:
+  # 是否重新生成 vod/xvod 的 category
+  VOD_CATES: "1"
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

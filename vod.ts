@@ -1,5 +1,6 @@
 import { writeFileSync } from 'fs'
 import { join } from 'path'
+import { getAvailableCategoryWithCfg } from "./vod_utils"
 
 const vods = <Iconfig[]>[
   {
@@ -297,7 +298,7 @@ const vods = <Iconfig[]>[
   }
 ];
 
-const nsfwVods = [
+const nsfwVods: Iconfig[] = [
   {
     id: "Xxibaoziyuan",
     name: "X细胞资源",
@@ -660,13 +661,28 @@ const nsfwVods = [
   },
 ]
 
+// from args context
 const args = process.argv.slice(2)
-
 const vodFile = args[0]
 const nsfwVodFile = args[1]
-
 const file1 = join(process.cwd(), vodFile)
-const file2 = join(process.cwd(), nsfwVodFile)
+const file2 = join(process.cwd(), nsfwVodFile);
 
-writeFileSync(file1, JSON.stringify(vods, null, 2))
-writeFileSync(file2, JSON.stringify(nsfwVods, null, 2))
+(async () => {
+  const needCates = (process.env["VOD_CATES"] ?? "0") == "1"
+  if (needCates) {
+    for (const cx of [...vods, ...nsfwVods]) {
+      try {
+        const cates = await getAvailableCategoryWithCfg(cx)
+        if (cates.length >= 1) {
+          cx.extra ??= {}
+          cx.extra.category = JSON.stringify(cates)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
+  writeFileSync(file1, JSON.stringify(vods, null, 2))
+  writeFileSync(file2, JSON.stringify(nsfwVods, null, 2))
+})()

@@ -6,6 +6,16 @@
   "configurations": [
     {
       "type": "bun",
+      "name": "debug vod.ts",
+      "request": "launch",
+      "program": "vod.ts",
+      "args": [
+        "vod.json",
+        "xvod.json"
+      ]
+    },
+    {
+      "type": "bun",
       "internalConsoleOptions": "neverOpen",
       "request": "launch",
       "name": "Debug File",
