@@ -1,6 +1,7 @@
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 import { getAvailableCategoryWithCfg } from "./vod_utils"
+import { req } from "utils"
 
 const vods = <Iconfig[]>[
   {
@@ -682,6 +683,29 @@ const file2 = join(process.cwd(), nsfwVodFile);
         console.error(error)
       }
     }
+  } else {
+    const __vod: Iconfig[] = JSON.parse(await req("https://d1y.github.io/kitty/vod.json"))
+    const __xvod: Iconfig[] = JSON.parse(await req("https://d1y.github.io/kitty/xvod.json"))
+    const ___vod = new Map(__vod.map(item => [item.id, item]))
+    const ___xvod = new Map(__xvod.map(item => [item.id, item]))
+    vods.forEach(item => {
+      const cx = ___vod.get(item.id)
+      if (!cx) return
+      cx.extra ??= {}
+      if (cx.extra!.category) {
+        item.extra ??= {}
+        item.extra.category = cx.extra.category
+      }
+    })
+    nsfwVods.forEach(item => {
+      const cx = ___xvod.get(item.id)
+      if (!cx) return
+      cx.extra ??= {}
+      if (cx.extra!.category) {
+        item.extra ??= {}
+        item.extra.category = cx.extra.category
+      }
+    })
   }
   writeFileSync(file1, JSON.stringify(vods, null, 2))
   writeFileSync(file2, JSON.stringify(nsfwVods, null, 2))

@@ -12,7 +12,10 @@
       "args": [
         "vod.json",
         "xvod.json"
-      ]
+      ],
+      "env": {
+        "VOD_CATES": "0",
+      }
     },
     {
       "type": "bun",
