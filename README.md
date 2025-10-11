@@ -1,6 +1,8 @@
 # @d1y/kitty
 
-https://d1y.github.io/kitty
+- https://d1y.github.io/kitty
+- https://d1y.netlify.app
+<!-- - https://d1y.pages.dev -->
 
 小猫影视扩展源, @d1y 自用
 
