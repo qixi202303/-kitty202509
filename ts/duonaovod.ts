@@ -1,4 +1,4 @@
-// import { kitty, req, createTestEnv } from 'utils'
+import { kitty, req, createTestEnv } from 'utils'
 
 export default class duonaovod implements Handle {
   getConfig() {
@@ -7,12 +7,20 @@ export default class duonaovod implements Handle {
       name: '多瑙影院',
       api: "https://www.duonaovod.com",
       nsfw: false,
-      type: 1
+      type: 1,
+      extra: {
+        gfw: false,
+        searchLimit: 12,
+      }
     }
   }
 
   async getCategory() {
     return <ICategory[]>[
+      {
+        "text": "首页",
+        "id": "/"
+      },
       {
         "text": "电影",
         "id": "1"
@@ -95,9 +103,48 @@ export default class duonaovod implements Handle {
   async getHome() {
     const cate = env.get('category')
     const page = env.get('page')
+    if (cate == "/") {
+      const $ = kitty.load(await req(env.baseUrl))
+      const cards = $(".conch-ctwrap .container").toArray().map<IHomeContentItem | null>(item => {
+        const _title = $(item).find(".hl-rb-title").toArray()
+        if (!_title.length) return null
+        const title = $(_title[0]).text().trim()
+        const isCard = $(item).find(".hl-vod-list").hasClass("swiper-wrapper")
+        const list = $(item).find(".hl-row-box .hl-list-wrap .hl-list-item").toArray()
+        const table = list.map(subItem => {
+          const a = $(subItem).find("a")
+          const id = a?.attr("href") ?? ""
+          const cover = a?.attr("data-original") ?? ""
+          const title = a?.attr("title") ?? ""
+          const remark = a?.find(".remarks")?.text().trim()
+          return { id, cover, title, remark }
+        })
+        if (!table.length) return null
+        return <IHomeContentItem>{
+          type: isCard ? "card" : "list",
+          title,
+          videos: table,
+        }
+      }).filter(item => !!item)
+      return <IHomeData>{
+        type: 'complex',
+        data: [
+          {
+            type: "markdown", extra: {
+              markdown: `
+> 欢迎使用小猫影视(${kitty.VERSION})
+> 该源仅做测试使用，不可用于其他用途
+> 飞机交流群: https://t.me/catmovie1145
+> 小猫其他指南: https://xmpro.netlify.app
+`
+            }
+          },
+          ...cards
+        ],
+      }
+    }
     const url = `${env.baseUrl}/index.php/vod/type/id/${cate}/page/${page}.html`
-    const html = await req(url)
-    const $ = kitty.load(html)
+    const $ = kitty.load(await req(url))
     return $(".hl-vod-list li").toArray().map(item => {
       const a = $(item).find("a")
       const id = a.attr("href") ?? ""
@@ -110,12 +157,9 @@ export default class duonaovod implements Handle {
   async getDetail() {
     const id = env.get("movieId")
     const url = `${env.baseUrl}${id}`
-    const html = await req(url)
-    const $ = kitty.load(html)
-    const box = $(".conch-ctwrap-auto .container .hl-row-box")
-    const div = box.find(".hl-item-thumb.hl-lazy")
-    const title = div.attr("title") ?? ""
-    const cover = div.attr("data-original") ?? ""
+    const $ = kitty.load(await req(url))
+    let desc = $(".hl-col-xs-12.blurb").text().trim().replace("简介：", "")
+    if (desc == "暂无简介") desc = ""
     const tabs = $(".hl-plays-from a").toArray().map(item => {
       return $(item).text().trim()
     })
@@ -130,14 +174,13 @@ export default class duonaovod implements Handle {
       const videos = _videos[index]
       return <IPlaylist>{ title, videos }
     })
-    return <IMovie>{ id, title, cover, playlist }
+    return <IMovie>{ desc, playlist }
   }
   async getSearch() {
     const wd = env.get("keyword")
     const page = env.get("page")
     const url = `${env.baseUrl}/index.php/vod/search/page/${page}/wd/${wd}.html`
-    const html = await req(url)
-    const $ = kitty.load(html)
+    const $ = kitty.load(await req(url))
     return $(".hl-one-list li").toArray().map<IMovie>(item => {
       const a = $(item).find("a")
       const id = a.attr("href") ?? ""
@@ -159,76 +202,28 @@ export default class duonaovod implements Handle {
 
     const unsafeObj: { url: string, encrypt: '1' | '2' } = eval(code)
 
-    // 豆包
-    function customUnescape(str: string) {
-      // 匹配 %xx 或 %uxxxx 格式的转义序列
-      return str.replace(/%u([0-9A-Fa-f]{4})|%([0-9A-Fa-f]{2})/g,
-        function (match, unicodeHex, hex) {
-          if (unicodeHex) {
-            // 处理 Unicode 字符 %uXXXX 格式
-            return String.fromCharCode(parseInt(unicodeHex, 16));
-          } else {
-            // 处理 ASCII 字符 %XX 格式
-            return String.fromCharCode(parseInt(hex, 16));
-          }
-        }
-      );
-    }
-
-    // https://github.com/cipherxof/w3ts/blob/8a11908a7d773873d80669d4c02dcc74d6f6ffec/system/base64.ts#L44
-    function base64Decode(input: string) {
-      const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-      let i = input.length;
-      for (; i > 0 && input[i] !== "="; i--) {
-        /* do nothing */
-      }
-      const str = input.substr(0, i - 1);
-      let output = "";
-      if (str.length % 4 === 1) {
-        return output;
-      }
-      let bs = 0;
-      // tslint:disable-next-line:no-conditional-assignment
-      for (
-        let bc = 0, buffer, idx = 0;
-        (buffer = str.charAt(idx));
-        ~buffer && ((bs = bc % 4 !== 0 ? bs * 64 + buffer : buffer), bc++ % 4) !== 0
-          ? (output += String.fromCharCode(255 & (bs >>> ((-2 * bc) & 6))))
-          : 0
-      ) {
-        if (`${buffer}`.length === 0) {
-          break;
-        }
-        buffer = chars.indexOf(buffer);
-        idx++;
-      }
-      return output;
-    }
-
-    // 逆向自 https://www.duonaovod.com/static/js/player.js?t=a20250923
+    // https://www.duonaovod.com/static/js/player.js?t=a20250923
     if (unsafeObj.encrypt == '1') {
-      unsafeObj.url = customUnescape(unsafeObj.url);
+      unsafeObj.url = unescape(unsafeObj.url);
     } else if (unsafeObj.encrypt == '2') {
-      unsafeObj.url = customUnescape(base64Decode(unsafeObj.url));
+      unsafeObj.url = unescape(atob(unsafeObj.url));
     }
     return unsafeObj.url
   }
 }
 
-// TEST
-// const env = createTestEnv("https://www.duonaovod.com")
-// const tv = new duonaovod();
-// (async () => {
-//   const cates = await tv.getCategory()
-//   env.set("category", cates[0].id)
-//   env.set("page", 1)
-//   const home = await tv.getHome()
-//   env.set('keyword', '我能')
-//   const search = await tv.getSearch()
-//   env.set("movieId", search[0].id)
-//   const detail = await tv.getDetail()
-//   env.set("iframe", detail.playlist![0].videos[0].id)
-//   const realM3u8 = await tv.parseIframe()
-//   debugger
-// })()
+const env = createTestEnv("https://www.duonaovod.com")
+const tv = new duonaovod();
+(async () => {
+  const cates = await tv.getCategory()
+  env.set("category", cates[1].id)
+  env.set("page", 1)
+  const home = await tv.getHome()
+  env.set('keyword', '我能')
+  const search = await tv.getSearch()
+  env.set("movieId", search[0].id)
+  const detail = await tv.getDetail()
+  env.set("iframe", detail.playlist![0].videos[0].id)
+  const realM3u8 = await tv.parseIframe()
+  debugger
+})()

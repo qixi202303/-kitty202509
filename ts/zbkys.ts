@@ -1,4 +1,4 @@
-// import { kitty, req, createTestEnv } from 'utils'
+import { kitty, req, createTestEnv } from 'utils'
 
 export default class zbkys implements Handle {
   getConfig() {
@@ -7,7 +7,11 @@ export default class zbkys implements Handle {
       name: "真不卡影院",
       api: "https://m.dgytlt.com",
       nsfw: false,
-      type: 1
+      type: 1,
+      extra: {
+        gfw: false,
+        searchLimit: 10,
+      }
     }
   }
   async getCategory() {
@@ -66,7 +70,7 @@ export default class zbkys implements Handle {
     const url = `${env.baseUrl}/vodsearch/${wd}----------${page}---.html`
     const html = await req(url)
     const $ = kitty.load(html)
-    return $(".stui-vodlist__media li").toArray().map(item=> {
+    return $(".stui-vodlist__media li").toArray().map(item => {
       const a = $(item).find(".v-thumb.stui-vodlist__thumb")
       const title = a.attr("title") ?? ""
       const cover = a.attr("data-original") ?? ""
@@ -81,19 +85,18 @@ export default class zbkys implements Handle {
   }
 }
 
-// TEST
-// const env = createTestEnv("https://m.dgytlt.com")
-// const tv = new qnys();
-// (async () => {
-//   const cates = await tv.getCategory()
-//   env.set("category", cates[0].id)
-//   env.set("page", 1)
-//   const home = await tv.getHome()
-//   env.set("keyword", "我能")
-//   const search = await tv.getSearch()
-//   env.set("movieId", search[0].id)
-//   const detail = await tv.getDetail()
-//   env.set("iframe", detail.playlist![0].videos[0].id)
-//   const realM3u8 = await tv.parseIframe()
-//   debugger
-// })()
+const env = createTestEnv("https://m.dgytlt.com")
+const tv = new zbkys();
+(async () => {
+  const cates = await tv.getCategory()
+  env.set("category", cates[0].id)
+  env.set("page", 1)
+  const home = await tv.getHome()
+  env.set("keyword", "我能")
+  const search = await tv.getSearch()
+  env.set("movieId", search[0].id)
+  const detail = await tv.getDetail()
+  env.set("iframe", detail.playlist![0].videos[0].id)
+  const realM3u8 = await tv.parseIframe()
+  debugger
+})()
