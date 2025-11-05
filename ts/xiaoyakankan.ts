@@ -27,11 +27,11 @@ export default class xiaoyakankan implements Handle {
     const cate = env.get("category")
     if (cate == "/") {
       const $ = kitty.load(await req(env.baseUrl))
-      const titles = $(".m4-main .m4-meta").toArray().map(item => {
+      const titles = $(".m4-main .m4-meta").toArray().map(item=> {
         return $(item).find("h3").text().trim()
       })
-      const videos = $(".m4-main .m4-list").toArray().map(item => {
-        return $(item).find(".item").toArray().map(subItem => {
+      const videos = $(".m4-main .m4-list").toArray().map(item=> {
+        return $(item).find(".item").toArray().map(subItem=> {
           const id = $(subItem).find("a.link").attr("href") ?? ""
           const title = $(subItem).find("a.title").text().trim()
           const remark = $(subItem).find(".tag2").text() ?? ""
@@ -42,7 +42,7 @@ export default class xiaoyakankan implements Handle {
           return <IMovie>{ id, title, cover, remark }
         })
       })
-      const list = titles.map((title, index) => {
+      const list = titles.map((title, index)=> {
         return <IHomeContentItem>{
           type: "list",
           title,
@@ -51,19 +51,7 @@ export default class xiaoyakankan implements Handle {
       })
       return <IHomeData>{
         type: "complex",
-        data: [
-          {
-            type: "markdown", extra: {
-              markdown: `
-> 欢迎使用小猫影视(${kitty.VERSION})
-> 该源仅做测试使用，不可用于其他用途
-> 飞机交流群: https://t.me/catmovie1145
-> 小猫其他指南: https://xmpro.netlify.app
-`
-            }
-          },
-          ...list,
-        ]
+        data: list
       }
     }
     const page = env.get("page")
